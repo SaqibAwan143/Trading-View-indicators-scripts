@@ -1,0 +1,209 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © protradingart
+
+//@version=5
+indicator("Pro Trading Art - Head And Shoulders", "PTA - Head And Shoulders", overlay = true,
+  max_lines_count=500, max_labels_count=500)
+
+pivotLeg = input.int(10, "Pivot Leg")
+isBullish = input.bool(true, "Bullish")
+isBearish = input.bool(true, "Bearish")
+
+ph = ta.pivothigh(high, pivotLeg, pivotLeg)
+pl = ta.pivotlow(low, pivotLeg, pivotLeg)
+
+var allPH = array.new_float(3)
+var allPL = array.new_float(3)
+
+var allPHIndex = array.new_int(3)
+var allPLIndex = array.new_int(3)
+
+if not na(ph)
+    allPH.push(ph)
+    allPHIndex.push(bar_index[pivotLeg])
+    allPHIndex.shift()
+    allPH.shift()
+
+if not na(pl)
+    allPL.push(pl)
+    allPLIndex.push(bar_index[pivotLeg])
+    allPL.shift()
+    allPLIndex.shift()
+
+drawLine(X1, Y1, X2, Y2, COLOR=color.lime)=>
+    line.new(X1, Y1, X2, Y2, color=COLOR, width = 2) 
+
+drawLabel(X, Y, TEXT, STYLE="UP", COLOR=color.lime)=>
+    label.new(X, Y, TEXT, color=COLOR, 
+     style=STYLE == "UP" ? label.style_label_up : label.style_label_down, 
+     textcolor = COLOR == color.lime ? color.black : color.white)
+
+//#region ///////////////////// H & S ////////////////////////////////////////////
+
+isRight = allPH.last() > allPL.last() and allPH.last() < allPH.get(1)
+isLeft = allPH.first() > allPL.first() and allPH.first() > allPL.get(1)
+isHead = allPH.get(1) >  allPH.first() and allPH.get(1) >  allPH.last()
+
+
+var line leftA = na
+var line leftB = na
+
+var line headA = na
+var line headB = na
+
+var line rightA = na
+
+var label leftLabel = na
+var label headLabel = na
+var label rightLabel = na
+
+isHS = isLeft and 
+ isHead and 
+ isRight and 
+ allPH.last() < allPH.get(1) and
+ allPH.last() > allPL.last() and
+ allPHIndex.last() > allPLIndex.last() and
+ allPH.get(1) > allPH.first() and 
+ allPHIndex.get(1) > allPLIndex.get(1) and
+ allPH.first() > allPL.first() and
+ allPHIndex.first() > allPLIndex.first() and 
+ allPHIndex.first() < allPLIndex.get(1) and 
+ allPLIndex.last() > allPHIndex.get(1) and 
+ allPL.last() > allPL.first()
+
+var isHSCreated = false
+var neckIndex = 0
+var neckPrice = 0.0
+
+var rsIndex = 0
+var rsPrice = 0.0
+var headPrice = 0.0
+
+if isBearish and isHS and not isHS[1]
+    isHSCreated := true
+    neckIndex := allPLIndex.last()
+    neckPrice := allPL.last()
+
+    rsIndex := allPHIndex.last()
+    rsPrice := allPH.last()
+    headPrice := allPH.get(1)
+
+    leftA := drawLine(allPLIndex.first(), allPL.first(), allPHIndex.first(), allPH.first(), color.red)
+    leftB := drawLine(allPHIndex.first(), allPH.first(), allPLIndex.get(1), allPL.get(1), color.red)
+
+    headA := drawLine(allPLIndex.get(1), allPL.get(1), allPHIndex.get(1), allPH.get(1), color.red)
+    headB := drawLine(allPHIndex.get(1), allPH.get(1), allPLIndex.get(2), allPL.get(2), color.red)
+
+    rightA := drawLine(allPLIndex.get(2), allPL.get(2), allPHIndex.get(2), allPH.get(2), color.red)
+
+    leftLabel := drawLabel(allPHIndex.first(), allPH.first(), "Left Shoulder", "DOWN", color.red)
+    headLabel := drawLabel(allPHIndex.get(1), allPH.get(1), "Head", "DOWN", color.red)
+    rightLabel := drawLabel(allPHIndex.last(), allPH.last(), "Right Shoulder", "DOWN", color.red)
+
+shortCondition = ta.crossunder(close, neckPrice) and isHSCreated and isBearish
+
+var line HSNeckLineA = na
+var line HSNeckLineB = na
+
+plotshape(shortCondition ? high : na, style=shape.labeldown, text="Sell", color=color.red, textcolor = color.white,
+ size=size.large, location=location.absolute)
+
+if shortCondition
+    alert("Confirm H & S Sell in : " + syminfo.ticker, alert.freq_once_per_bar_close)
+
+if shortCondition
+    HSNeckLineA := drawLine(neckIndex, neckPrice, bar_index, neckPrice, color.red)
+    HSNeckLineA.set_style(line.style_dotted)
+
+    HSNeckLineB := drawLine(rsIndex, rsPrice, bar_index, neckPrice, color.red)
+    HSNeckLineB.set_style(line.style_dotted)
+
+if shortCondition[1] or ta.crossover(close, headPrice)
+    isHSCreated := false
+
+//#endregion
+
+//#region ///////////////////// Inverted H & S ////////////////////////////////////////////
+
+isIVRight = allPL.last() > allPL.get(1) and allPL.last() < allPH.last()
+isIVLeft = allPL.first() < allPH.get(1) and allPL.first() < allPH.first()
+isIVHead = allPL.first() > allPL.get(1) and allPL.get(1) < allPL.last()
+
+var line ivLeftA = na
+var line ivLeftB = na
+
+var line ivHeadA = na
+var line ivHeadB = na
+
+var line ivRightA = na
+var line ivRightB = na
+
+var label ivLeftLabel = na
+var label ivHeadLabel = na
+var label ivRightLabel = na
+
+isIVHS = isIVLeft and 
+ isIVHead and 
+ isIVRight and 
+ (allPH.get(2) > allPL.first()) and 
+ (allPH.last() > allPH.get(1)) and 
+ (allPH.last() < allPH.first()) and 
+ (allPHIndex.first() < allPLIndex.first()) and 
+ (allPLIndex.first() < allPHIndex.get(1)) and 
+ (allPHIndex.get(1) < allPLIndex.get(1)) and 
+ (allPLIndex.last() > allPHIndex.last()) and 
+ (allPHIndex.last() > allPLIndex.get(1)) and
+ (allPL.last() < allPH.get(1))
+
+var isIVHSCreated = false
+var ivRSNeckIndex = 0
+var ivRSNeckPrice = 0.0
+
+var ivRSIndex = 0
+var ivRSPrice = 0.0
+var ivHeadPrice = 0.0
+
+if isBullish and isIVHS and not isIVHS[1]
+    isIVHSCreated := true
+
+    ivRSNeckIndex := allPHIndex.last()
+    ivRSNeckPrice := allPH.last()
+
+    ivRSIndex := allPLIndex.last()
+    ivRSPrice := allPL.last()
+    ivHeadPrice := allPL.get(1)
+
+    ivLeftA := drawLine(allPHIndex.first(), allPH.first(), allPLIndex.first(), allPL.first())
+    ivLeftB := drawLine(allPLIndex.first(), allPL.first(), allPHIndex.get(1), allPH.get(1))
+
+    ivHeadA := drawLine(allPHIndex.get(1), allPH.get(1), allPLIndex.get(1), allPL.get(1))
+    ivHeadB := drawLine(allPLIndex.get(1), allPL.get(1), allPHIndex.get(2), allPH.get(2))
+
+    ivRightA := drawLine(allPHIndex.get(2), allPH.get(2), allPLIndex.get(2), allPL.get(2))
+
+    ivLeftLabel := drawLabel(allPLIndex.first(), allPL.first(), "Left Shoulder")
+    ivHeadLabel := drawLabel(allPLIndex.get(1), allPL.get(1), "Head")
+    ivRightLabel := drawLabel(allPLIndex.last(), allPL.last(), "Right Shoulder")
+
+longCondition = ta.crossover(close, ivRSNeckPrice) and isIVHSCreated and isBullish
+
+var line ivHSNeckLineA = na
+var line ivHSNeckLineB = na
+
+plotshape(longCondition ? low : na, style=shape.labelup, text="Buy", color=color.lime, textcolor = color.black,
+ size=size.large, location=location.absolute)
+
+if longCondition
+    alert("Confirm H & S Buy in : " + syminfo.ticker, alert.freq_once_per_bar_close)
+
+if longCondition
+    ivHSNeckLineA := drawLine(ivRSNeckIndex, ivRSNeckPrice, bar_index, ivRSNeckPrice)
+    ivHSNeckLineA.set_style(line.style_dotted)
+
+    ivHSNeckLineB := drawLine(ivRSIndex, ivRSPrice, bar_index, ivRSNeckPrice)
+    ivHSNeckLineB.set_style(line.style_dotted)
+
+if longCondition or ta.crossunder(close, ivHeadPrice)
+    isIVHSCreated := false
+
+//#endregion

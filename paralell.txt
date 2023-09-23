@@ -1,0 +1,39 @@
+#include <stdio.h>
+
+int main() {
+    int n;
+    unsigned long long factorial = 1;
+
+    // Prompt the user to enter a positive integer
+    printf("Enter a positive integer: ");
+    scanf("%d", &n);
+
+    if (n < 0) {
+        printf("Factorial is not defined for negative numbers.\n");
+    } else {
+        // Calculate the factorial
+        for (int i = 1; i <= n; i++) {
+            factorial *= i;
+        }
+
+        // Print the factorial
+        printf("%d! = %llu\n", n, factorial);
+    }
+
+    return 0;
+}
+#include <stdio.h>
+
+int main() {
+    int sum = 0;
+
+    // Loop from 1 to 100 and add each number to the sum
+    for (int i = 1; i <= 100; i++) {
+        sum += i;
+    }
+
+    // Print the sum
+    printf("The sum of integers from 1 to 100 is: %d\n", sum);
+
+    return 0;
+}
